@@ -1,8 +1,19 @@
 """Email processing agents using OpenAI Agents SDK with Ollama."""
+from pathlib import Path
 from pydantic import BaseModel
 from agents import Agent, function_tool, ModelSettings
 from config import get_model, NOTIFICATION_EMAIL
 from gmail_tools import send_email
+
+
+# ============ Prompt Loading ============
+
+PROMPTS_DIR = Path(__file__).parent / "prompts"
+
+
+def load_prompt(name: str) -> str:
+    """Load an agent prompt from the prompts directory."""
+    return (PROMPTS_DIR / name).read_text(encoding="utf-8").strip()
 
 
 # ============ Output Schemas ============
@@ -94,22 +105,7 @@ def create_triage_agent() -> Agent:
     """Create the Triage Agent that analyzes incoming emails."""
     return Agent(
         name="Triage Agent",
-        instructions="""You are an email triage specialist. Analyze incoming emails and decide how to handle them.
-
-For each email, determine:
-1. ACTION - One of:
-   - "respond": Email requires a reply (questions, requests, important communications)
-   - "ignore": No action needed (newsletters, promotions, automated notifications)
-   - "flag_for_human": Complex/sensitive matters requiring human judgment
-
-2. URGENCY - Rate as "high", "medium", or "low" based on:
-   - Deadlines mentioned
-   - Sender importance
-   - Content criticality
-
-3. CATEGORY - Classify as: business, personal, spam, newsletter, support, inquiry, etc.
-
-Be concise but thorough in your reasoning. When in doubt about sensitive topics (legal, financial, emotional), flag for human review.""",
+        instructions=load_prompt("triage_agent.txt"),
         model=get_model(),
         model_settings=ModelSettings(extra_body={"reasoning_effort": "none"}),
         output_type=TriageResult,
@@ -120,18 +116,7 @@ def create_draft_agent() -> Agent:
     """Create the Draft Agent that generates email replies."""
     return Agent(
         name="Draft Agent",
-        instructions="""You are a professional email writer. Generate clear, helpful email replies.
-
-Guidelines:
-1. Match the tone to the original email (formal for business, friendly for personal)
-2. Address all questions/points raised in the original email
-3. Be concise but complete - avoid unnecessary filler
-4. Use appropriate greetings and sign-offs
-5. If the email is a question, provide a helpful answer
-6. If it's a request, acknowledge and respond appropriately
-7. Never make up information - if unsure, suggest the person contact support
-
-Keep replies professional and to the point.""",
+        instructions=load_prompt("draft_agent.txt"),
         model=get_model(),
         output_type=DraftResult,
     )
@@ -141,28 +126,7 @@ def create_quality_checker_agent() -> Agent:
     """Create the Quality Checker Agent that reviews drafts."""
     return Agent(
         name="Quality Checker",
-        instructions="""You are a quality assurance specialist for email communications.
-
-Review email drafts for:
-1. TONE - Is it appropriate for the context? Professional enough?
-2. ACCURACY - Does it address the original email's concerns?
-3. CLARITY - Is it easy to understand? No ambiguity?
-4. COMPLETENESS - Are all points addressed?
-5. SENSITIVITY - Any content that could be misunderstood or offensive?
-
-Flag for human review if:
-- The topic is legally sensitive
-- Financial commitments are mentioned
-- The tone seems off or potentially offensive
-- Complex technical accuracy can't be verified
-- The original email was emotionally charged
-
-Provide a quality score (1-10):
-- 8-10: Ready to send
-- 5-7: Minor issues, can send with revisions
-- 1-4: Needs human review
-
-If approved, you may make minor edits to improve the draft.""",
+        instructions=load_prompt("quality_checker_agent.txt"),
         model=get_model(),
         output_type=QualityResult,
         tools=[send_flagged_notification],
