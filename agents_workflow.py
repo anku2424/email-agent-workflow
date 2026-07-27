@@ -1,6 +1,6 @@
 """Email processing agents using OpenAI Agents SDK with Ollama."""
 from pydantic import BaseModel
-from agents import Agent, function_tool
+from agents import Agent, function_tool, ModelSettings
 from config import get_model, NOTIFICATION_EMAIL
 from gmail_tools import send_email
 
@@ -111,6 +111,7 @@ For each email, determine:
 
 Be concise but thorough in your reasoning. When in doubt about sensitive topics (legal, financial, emotional), flag for human review.""",
         model=get_model(),
+        model_settings=ModelSettings(extra_body={"reasoning_effort": "none"}),
         output_type=TriageResult,
     )
 
