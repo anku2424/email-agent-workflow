@@ -118,6 +118,7 @@ def create_draft_agent() -> Agent:
         name="Draft Agent",
         instructions=load_prompt("draft_agent.txt"),
         model=get_model(),
+        model_settings=ModelSettings(extra_body={"reasoning_effort": "none"}),
         output_type=DraftResult,
     )
 
@@ -128,6 +129,7 @@ def create_quality_checker_agent() -> Agent:
         name="Quality Checker",
         instructions=load_prompt("quality_checker_agent.txt"),
         model=get_model(),
+        model_settings=ModelSettings(extra_body={"reasoning_effort": "none"}),
         output_type=QualityResult,
         tools=[send_flagged_notification],
     )
